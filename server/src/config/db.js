@@ -1,18 +1,38 @@
 const mongoose = require('mongoose');
 
+let cachedConnection = null;
+
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/jobhunter-ai';
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+
+  const uri = process.env.MONGODB_URI;
+
+  if (!uri) {
+    console.error('[MongoDB Error]: MONGODB_URI environment variable is missing!');
+    throw new Error('MONGODB_URI environment variable is missing. Please set MONGODB_URI in your Vercel project settings.');
+  }
 
   try {
-    console.log(`[MongoDB] Connecting to ${uri.replace(/\/\/.*@/, '//***:***@')}...`);
+    const maskedUri = uri.replace(/\/\/.*@/, '//***:***@');
+    console.log(`[MongoDB] Connecting to ${maskedUri}...`);
+
+    mongoose.set('strictQuery', false);
+
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 4000,
-      connectTimeoutMS: 4000,
+      serverSelectionTimeoutMS: 6000,
+      connectTimeoutMS: 6000,
+      bufferCommands: false,
     });
+
+    cachedConnection = conn;
     console.log(`[MongoDB] Connected successfully: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
-    console.error(`\n❌ [MongoDB Connection Error]: ${error.message}`);
-    console.error(`➡️ Please verify that your MongoDB service is running on 127.0.0.1:27017, or set MONGODB_URI in server/.env to your MongoDB Atlas cloud URI.\n`);
+    cachedConnection = null;
+    console.error(`❌ [MongoDB Connection Error]: ${error.message}`);
+    throw error;
   }
 };
 
