@@ -11,7 +11,7 @@ const app = require('../server/src/app');
 
 module.exports = async (req, res) => {
   // 1. Direct Diagnostic Health Check (Fast response without waiting for DB)
-  if (req.url === '/api/health' || req.url === '/api/health/') {
+  if (req.url && (req.url === '/api/health' || req.url === '/health' || req.url.includes('health'))) {
     return res.status(200).json({
       status: 'online',
       service: 'JobHunter AI Vercel API',

@@ -5,10 +5,18 @@ const Resume = require('../models/Resume');
 const User = require('../models/User');
 const aiService = require('../services/aiService');
 
-// Extract text helper based on file extension
-async function extractTextFromFile(filePath, originalName) {
-  const ext = originalName.split('.').pop().toLowerCase();
-  const fileBuffer = fs.readFileSync(filePath);
+// Extract text helper based on file extension and memory buffer
+async function extractTextFromFile(file) {
+  const ext = file.originalname.split('.').pop().toLowerCase();
+  let fileBuffer = file.buffer;
+
+  if (!fileBuffer && file.path && fs.existsSync(file.path)) {
+    fileBuffer = fs.readFileSync(file.path);
+  }
+
+  if (!fileBuffer) {
+    throw new Error('No readable file buffer received.');
+  }
 
   if (ext === 'pdf') {
     const data = await pdfParse(fileBuffer);
@@ -28,12 +36,12 @@ exports.uploadResume = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please upload a PDF or DOCX file' });
     }
 
-    const { path: filePath, originalname } = req.file;
+    const { originalname } = req.file;
 
-    // 1. Extract raw text from file
+    // 1. Extract raw text from file buffer
     let rawText = '';
     try {
-      rawText = await extractTextFromFile(filePath, originalname);
+      rawText = await extractTextFromFile(req.file);
     } catch (err) {
       return res.status(400).json({
         success: false,
@@ -57,7 +65,7 @@ exports.uploadResume = async (req, res) => {
     const resume = await Resume.create({
       userId: req.user._id,
       fileName: originalname,
-      filePath,
+      filePath: req.file.path || `memory://${originalname}`,
       fileType: ext === 'pdf' ? 'pdf' : (ext === 'docx' ? 'docx' : 'manual'),
       rawText,
       parsedProfile,
