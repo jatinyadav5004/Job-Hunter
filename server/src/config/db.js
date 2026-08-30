@@ -10,8 +10,9 @@ const connectDB = async () => {
   const uri = process.env.MONGODB_URI;
 
   if (!uri) {
-    console.error('[MongoDB Error]: MONGODB_URI environment variable is missing!');
-    throw new Error('MONGODB_URI environment variable is missing. Please set MONGODB_URI in your Vercel project settings.');
+    throw new Error(
+      'MONGODB_URI is not set. Please add MONGODB_URI in Vercel Settings -> Environment Variables.'
+    );
   }
 
   try {
@@ -21,13 +22,13 @@ const connectDB = async () => {
     mongoose.set('strictQuery', false);
 
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 6000,
-      connectTimeoutMS: 6000,
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS: 4000,
       bufferCommands: false,
     });
 
     cachedConnection = conn;
-    console.log(`[MongoDB] Connected successfully: ${conn.connection.host}`);
+    console.log(`[MongoDB] Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
     cachedConnection = null;
