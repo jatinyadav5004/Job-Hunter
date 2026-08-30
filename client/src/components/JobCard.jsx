@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Sparkles,
   ExternalLink,
-  Clock,
 } from 'lucide-react';
 import MatchScoreBadge from './MatchScoreBadge';
 
@@ -31,7 +30,7 @@ export function getSafeJobUrl(job) {
   return url;
 }
 
-export default function JobCard({ item, jobMatch, onSelect, onReview, onSave, onApply, isSaved = false }) {
+export default function JobCard({ item, jobMatch, onSelect, onReview, onSave, isSaved = false }) {
   const data = item || jobMatch || {};
   const job = data.job || {};
   const score = data.score ?? 80;
@@ -69,15 +68,15 @@ export default function JobCard({ item, jobMatch, onSelect, onReview, onSave, on
       }`}
     >
       <div>
-        {/* Applied / Saved Banner Flag */}
+        {/* Applied Status Banner */}
         {isApplied && (
           <div className="mb-3 flex items-center justify-between bg-emerald-100/80 border border-emerald-300/80 px-3 py-1 rounded-xl text-emerald-900 text-xs font-bold">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-              Already Applied
+              Contacted / Cold Email Sent
             </span>
             <span className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">
-              In Tracer
+              In History
             </span>
           </div>
         )}
@@ -168,10 +167,10 @@ export default function JobCard({ item, jobMatch, onSelect, onReview, onSave, on
           href={safeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          title="Apply on Company / LinkedIn"
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-teal-700 hover:bg-slate-50 text-xs font-bold transition-colors"
+          title="Open Live Job Search"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-teal-700 hover:bg-slate-50 text-xs font-bold transition-colors"
         >
-          <span>Apply Now</span>
+          <span>View Live Job</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>

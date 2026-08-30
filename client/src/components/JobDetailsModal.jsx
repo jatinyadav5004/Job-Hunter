@@ -248,10 +248,9 @@ export default function JobDetailsModal({ item, jobMatch, onClose, onSave, onSta
             href={safeApplyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={handleApplyClick}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 shadow-2xs transition-all"
           >
-            <span>Apply Now</span>
+            <span>View Live Job</span>
             <ExternalLink className="w-4 h-4 text-teal-600" />
           </a>
 

@@ -100,15 +100,32 @@ class EmailService {
       emailAccount.sentTodayCount += 1;
       await emailAccount.save();
 
-      // 7. Update Application Kanban status if application exists
-      if (jobId) {
+      // 7. Save to History: Register in Application Tracer upon cold email send
+      let targetJobId = jobId;
+      if (!targetJobId && companyName) {
+        const Job = require('../models/Job');
+        let job = await Job.findOne({ company: companyName });
+        if (!job) {
+          job = await Job.create({
+            title: subject.replace(/^Application for /i, '').split('—')[0].trim() || 'Open Opportunity',
+            company: companyName,
+            description: `Cold outreach to ${recipientName} (${recipientEmail})`,
+            applicationUrl: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(companyName)}`,
+            source: 'manual',
+          });
+        }
+        targetJobId = job._id;
+      }
+
+      if (targetJobId) {
         await Application.findOneAndUpdate(
-          { userId: user._id, jobId },
+          { userId: user._id, jobId: targetJobId },
           {
             $set: {
               status: 'contacted',
               emailSent: true,
               emailLogId: emailLog._id,
+              dateApplied: new Date(),
             },
           },
           { upsert: true }
