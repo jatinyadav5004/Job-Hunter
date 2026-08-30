@@ -1,0 +1,31 @@
+# Node Modules
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+server/.env
+client/.env
+
+# Build outputs
+client/dist/
+dist/
+build/
+
+# Uploads & Temporary files
+server/uploads/*
+!server/uploads/.gitkeep
+uploads/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
