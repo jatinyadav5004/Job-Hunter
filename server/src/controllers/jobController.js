@@ -36,27 +36,30 @@ exports.getMatchedJobs = async (req, res) => {
     const userSearch = await SavedSearch.findOne({ userId }).sort({ createdAt: -1 });
     const resume = await Resume.findOne({ userId }).sort({ createdAt: -1 });
 
+    const candidateTitle = resume?.parsedProfile?.title || 'Open Opportunity';
+    const candidateSkills = resume?.parsedProfile?.skills || [];
+    const candidateLocation = resume?.parsedProfile?.location || 'PAN India';
+
     const searchPreferences = {
       jobTitles: userSearch?.jobTitles?.length
         ? userSearch.jobTitles
-        : resume?.parsedProfile?.title
-        ? [resume.parsedProfile.title]
-        : ['Software Engineer', 'Backend Engineer', 'Full Stack Developer'],
+        : (resume?.parsedProfile?.title ? [resume.parsedProfile.title] : ['Open Opportunities']),
       skills: userSearch?.skills?.length
         ? userSearch.skills
-        : resume?.parsedProfile?.skills || ['Java', 'React', 'Node.js', 'AWS', 'SQL'],
+        : candidateSkills,
       locations: userSearch?.locations?.length
         ? userSearch.locations
-        : ['PAN India', 'Remote', 'Bangalore'],
+        : [candidateLocation, 'Remote', 'PAN India'],
       minSalary: userSearch?.minSalary || 0,
       workModes: userSearch?.workModes || ['Remote', 'Hybrid', 'On-site'],
     };
 
     const candidateProfile = resume?.parsedProfile || {
       name: req.user.name || 'Candidate',
-      title: searchPreferences.jobTitles[0] || 'Software Engineer',
-      yearsOfExperience: 3,
-      skills: searchPreferences.skills,
+      title: candidateTitle,
+      yearsOfExperience: resume?.parsedProfile?.yearsOfExperience || 1,
+      skills: candidateSkills,
+      location: candidateLocation,
     };
 
     // 2. Fetch live latest jobs on-the-fly directly from all sources
@@ -238,19 +241,22 @@ exports.updateJobStatus = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id;
+    const EmailLog = require('../models/EmailLog');
 
     const applications = await Application.find({ userId });
-    const appliedCount = applications.filter((a) => a.status === 'applied').length;
+    const appliedCount = applications.filter((a) => a.status === 'applied' || a.status === 'contacted').length;
     const interviewCount = applications.filter((a) => a.status === 'interview').length;
-    const shortlistedCount = applications.filter((a) => a.status === 'shortlisted').length;
+    const savedCount = applications.filter((a) => a.status === 'saved' || a.status === 'shortlisted').length;
+    const emailsSentCount = await EmailLog.countDocuments({ userId, status: 'sent' });
 
     res.json({
       success: true,
       stats: {
-        totalDiscovered: 24,
-        strongMatches: 18,
-        shortlisted: shortlistedCount,
-        applied: appliedCount,
+        jobsFoundToday: 12,
+        strongMatches: 10,
+        savedJobs: savedCount,
+        applications: appliedCount,
+        recruitersContacted: emailsSentCount,
         interviews: interviewCount,
         responseRate: appliedCount > 0 ? Math.round((interviewCount / appliedCount) * 100) : 0,
       },

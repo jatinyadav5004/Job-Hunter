@@ -30,10 +30,10 @@ export default function ColdEmailGenerator() {
   const [activeResume, setActiveResume] = useState(null);
   const [uploadingResume, setUploadingResume] = useState(false);
 
-  const [jobTitle, setJobTitle] = useState(passedJob?.title || 'Software Engineer');
-  const [company, setCompany] = useState(passedJob?.company || 'Innovative Tech Corp');
-  const [recruiterName, setRecruiterName] = useState(passedJob?.recruiterId?.name || 'Sarah Jenkins');
-  const [recruiterEmail, setRecruiterEmail] = useState(passedJob?.recruiterId?.email || 'sarah.jenkins@company.com');
+  const [jobTitle, setJobTitle] = useState(passedJob?.title || '');
+  const [company, setCompany] = useState(passedJob?.company || '');
+  const [recruiterName, setRecruiterName] = useState(passedJob?.recruiterId?.name || '');
+  const [recruiterEmail, setRecruiterEmail] = useState(passedJob?.recruiterId?.email || '');
   const [context, setContext] = useState('');
   
   const [loading, setLoading] = useState(false);

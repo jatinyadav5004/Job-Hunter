@@ -391,192 +391,187 @@ export default function SavedSearches() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSearch} className="p-6 overflow-y-auto space-y-4 text-xs">
-              {/* Auto-Fill from Resume Quick Button */}
-              <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 rounded-xl p-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
-                  <span className="font-bold text-teal-950 text-xs">Have an uploaded resume?</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAutoFillFromResume}
-                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0"
-                >
-                  ✨ Auto-Fill from Resume
-                </button>
-              </div>
-
-              {/* 1. Target Role Dropdown */}
-              <div>
-                <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Briefcase className="w-4 h-4 text-teal-600" />
-                    Target Role
-                  </span>
-                  <span className="text-[11px] font-normal text-slate-400">Select one or more</span>
-                </label>
-
-                {/* Selected Role Tags */}
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[38px] mb-2">
-                  {selectedRoles.map((role, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg"
-                    >
-                      {role}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRole(role)}
-                        className="text-teal-200 hover:text-white"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-
-                {/* Role Dropdown */}
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) handleAddRole(e.target.value);
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                >
-                  <option value="" disabled>
-                    -- Select Role to Add (Software Engineer, HR, Marketing...) --
-                  </option>
-                  {MAIN_ROLE_OPTIONS.map((r, idx) => (
-                    <option key={idx} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 2. Target Locations Dropdown with PAN India at Top */}
-              <div>
-                <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Globe className="w-4 h-4 text-teal-600" />
-                    Target Location
-                  </span>
-                  <span className="text-[11px] font-normal text-slate-400">Select one or more</span>
-                </label>
-
-                {/* Selected Location Tags */}
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[38px] mb-2">
-                  {selectedLocations.map((loc, idx) => (
-                    <span
-                      key={idx}
-                      className={`inline-flex items-center gap-1 font-bold text-xs px-2.5 py-0.5 rounded-lg ${
-                        loc.startsWith('PAN India')
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-teal-700 text-white'
-                      }`}
-                    >
-                      {loc}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLocation(loc)}
-                        className="text-teal-200 hover:text-white"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-
-                {/* Location Dropdown */}
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) handleAddLocation(e.target.value);
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                >
-                  <option value="" disabled>
-                    -- Select Location (PAN India, States, Metros) --
-                  </option>
-                  {MAIN_LOCATION_OPTIONS.map((loc, idx) => (
-                    <option
-                      key={idx}
-                      value={loc}
-                      className={loc.startsWith('PAN') ? 'font-black text-emerald-700 bg-emerald-50' : ''}
-                    >
-                      {loc}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 3. Optional Advanced Filters Toggle */}
-              <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/60">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full flex items-center justify-between text-xs font-bold text-slate-700"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600" />
-                    Additional Filters (Optional)
-                  </span>
-                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-
-                {showAdvanced && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 space-y-3 animate-in fade-in">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">
-                        Specific Skills / Keywords (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.skills}
-                        onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                        placeholder="e.g. React, Node.js, HRIS, SEO, Figma"
-                        className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Min Experience (yrs)</label>
-                        <input
-                          type="number"
-                          value={formData.experienceMin}
-                          onChange={(e) => setFormData({ ...formData, experienceMin: e.target.value })}
-                          className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Max Experience (yrs)</label>
-                        <input
-                          type="number"
-                          value={formData.experienceMax}
-                          onChange={(e) => setFormData({ ...formData, experienceMax: e.target.value })}
-                          className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
-                        />
-                      </div>
-                    </div>
+            <form onSubmit={handleCreateSearch} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs flex-1">
+                {/* Auto-Fill from Resume Quick Button */}
+                <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 rounded-xl p-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
+                    <span className="font-bold text-teal-950 text-xs">Have an uploaded resume?</span>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={handleAutoFillFromResume}
+                    className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0"
+                  >
+                    ✨ Auto-Fill from Resume
+                  </button>
+                </div>
+
+                {/* 1. Target Role Dropdown */}
+                <div>
+                  <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Briefcase className="w-4 h-4 text-teal-600" />
+                      Target Role
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">Add multiple if desired</span>
+                  </label>
+
+                  {/* Selected Role Tags */}
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[38px] mb-2">
+                    {selectedRoles.map((role, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg"
+                      >
+                        {role}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRole(role)}
+                          className="text-teal-200 hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Role Dropdown */}
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) handleAddRole(e.target.value);
+                      e.target.value = '';
+                    }}
+                    defaultValue=""
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  >
+                    <option value="" disabled>
+                      -- Select Role to Add (Software Engineer, HR, Marketing...) --
+                    </option>
+                    {MAIN_ROLE_OPTIONS.map((r, idx) => (
+                      <option key={idx} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Target Locations Dropdown with PAN India at Top */}
+                <div>
+                  <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-teal-600" />
+                      Preferred Location
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">PAN India / Metros</span>
+                  </label>
+
+                  {/* Selected Location Tags */}
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[38px] mb-2">
+                    {selectedLocations.map((loc, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 bg-slate-800 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg"
+                      >
+                        {loc}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLocation(loc)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Location Dropdown */}
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) handleAddLocation(e.target.value);
+                      e.target.value = '';
+                    }}
+                    defaultValue=""
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  >
+                    <option value="" disabled>
+                      -- Select Preferred Location (PAN India, Remote, Bangalore...) --
+                    </option>
+                    {MAIN_LOCATION_OPTIONS.map((loc, idx) => (
+                      <option key={idx} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 3. Optional Advanced Filters Toggle */}
+                <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/60">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="w-full flex items-center justify-between text-xs font-bold text-slate-700"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600" />
+                      Additional Filters (Optional)
+                    </span>
+                    {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-3 animate-in fade-in">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">
+                          Specific Skills / Keywords (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.skills}
+                          onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                          placeholder="e.g. React, Node.js, HRIS, SEO, Figma"
+                          className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Min Experience (yrs)</label>
+                          <input
+                            type="number"
+                            value={formData.experienceMin}
+                            onChange={(e) => setFormData({ ...formData, experienceMin: e.target.value })}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Max Experience (yrs)</label>
+                          <input
+                            type="number"
+                            value={formData.experienceMax}
+                            onChange={(e) => setFormData({ ...formData, experienceMax: e.target.value })}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              {/* Sticky Mobile-Friendly Modal Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-semibold"
+                  className="px-4 py-2.5 border border-slate-300 bg-white rounded-xl text-slate-700 font-bold hover:bg-slate-100 text-xs transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm"
+                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-teal-600/20 transition-all"
                 >
                   Save & Search
                 </button>

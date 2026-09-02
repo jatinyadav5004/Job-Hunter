@@ -30,13 +30,17 @@ function deriveCompanyDomain(companyName) {
     infosys: 'infosys.com',
     wipro: 'wipro.com',
     hcl: 'hcltech.com',
+    marriott: 'marriott.com',
+    taj: 'ihcltata.com',
+    itchotels: 'itchotels.com',
+    oberoi: 'oberoihotels.com',
   };
 
   return knownDomains[clean] || `${clean}.com`;
 }
 
 // @route   GET /api/recruiters/search
-// Search employees and recruiters by Company Name & optional Role
+// Search real recruiters by Company Name & provide direct live LinkedIn search portals
 exports.searchCompanyEmployees = async (req, res) => {
   try {
     const { company, role } = req.query;
@@ -48,100 +52,81 @@ exports.searchCompanyEmployees = async (req, res) => {
     const cleanCompany = company.trim();
     const domain = deriveCompanyDomain(cleanCompany);
 
-    // 1. Check existing records in DB
-    const existingRecruiters = await Recruiter.find({
-      companyName: new RegExp(cleanCompany, 'i'),
+    // 1. Fetch any verified recruiters in the database
+    const savedRecruiters = await Recruiter.find({
+      companyName: new RegExp(`^${cleanCompany}$`, 'i'),
     });
 
-    const results = [...existingRecruiters];
-
-    // 2. If fewer than 5 exist, generate and discover key hiring contacts for this company
-    const targetRoles = role
-      ? [role, 'Technical Recruiter', 'Talent Acquisition Lead']
-      : [
-          'Lead Technical Recruiter',
-          'Talent Acquisition Specialist',
-          'Head of Talent & People',
-          'Engineering Hiring Manager',
-          'Senior HR Business Partner',
-          'Director of Talent Acquisition',
-        ];
-
-    const samplePeople = [
-      { name: 'Sarah Jenkins', role: 'Lead Technical Recruiter' },
-      { name: 'Priya Sharma', role: 'Talent Acquisition Specialist' },
-      { name: 'Michael Chang', role: 'Engineering Hiring Manager' },
-      { name: 'Ananya Verma', role: 'Head of Talent & People' },
-      { name: 'David Miller', role: 'Senior HR Business Partner' },
-      { name: 'Rohan Gupta', role: 'Director of Talent Acquisition' },
-      { name: 'Elena Rostova', role: 'Global Tech Recruiter' },
-      { name: 'Rahul Deshmukh', role: 'Staff Engineering Manager' },
-    ];
-
-    for (let i = 0; i < targetRoles.length; i++) {
-      const person = samplePeople[i % samplePeople.length];
-      const personRole = targetRoles[i] || person.role;
-      const firstName = person.name.split(' ')[0].toLowerCase();
-      const lastName = person.name.split(' ')[1].toLowerCase();
-      const email = `${firstName}.${lastName}@${domain}`;
-
-      const alreadyExists = results.some(
-        (r) => (r.email || '').toLowerCase() === email.toLowerCase()
-      );
-
-      if (!alreadyExists) {
-        const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} ${personRole}`)}`;
-
-        const newRecruiter = new Recruiter({
-          companyName: cleanCompany,
-          name: person.name,
-          title: personRole,
-          email,
-          linkedinUrl: linkedinSearchUrl,
-          source: 'linkedin_google_discovery',
-          confidenceScore: 94 + (i % 5),
-        });
-
-        await newRecruiter.save();
-        results.push(newRecruiter);
-      }
-    }
-
-    // Check which ones have already been contacted by this user
+    // 2. Check which ones have been contacted by user
     const userEmailLogs = await EmailLog.find({ userId: req.user._id, status: 'sent' });
     const contactedSet = new Set(userEmailLogs.map((l) => (l.recipientEmail || '').toLowerCase()));
 
-    const enrichedResults = results.map((r) => {
-      const liveRole = r.title || 'Recruiter';
-      const liveCompany = r.companyName || cleanCompany;
-      const safeLinkedinUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${liveCompany} ${liveRole}`)}`;
-      const googleXrayUrl = `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in/ "${liveCompany}" (${liveRole})`)}`;
+    const verifiedContacts = savedRecruiters.map((r) => ({
+      _id: r._id,
+      name: r.name,
+      title: r.title,
+      companyName: r.companyName,
+      email: r.email,
+      linkedinUrl: r.linkedinUrl,
+      confidenceScore: r.confidenceScore || 95,
+      contacted: contactedSet.has((r.email || '').toLowerCase()),
+    }));
 
-      return {
-        _id: r._id,
-        name: r.name,
-        title: r.title,
-        companyName: liveCompany,
-        domain,
-        email: r.email,
-        linkedinUrl: safeLinkedinUrl,
-        googleXrayUrl,
-        confidenceScore: r.confidenceScore || 95,
-        contacted: contactedSet.has((r.email || '').toLowerCase()),
-        domainPatterns: [
-          `first.last@${domain}`,
-          `first@${domain}`,
-          `f.last@${domain}`,
-        ],
-      };
-    });
+    // 3. Live LinkedIn & Talent Discovery Portals (Real live LinkedIn queries)
+    const customRoleQuery = role ? ` ${role}` : '';
+    const linkedinPortals = [
+      {
+        title: '🎯 All Live Recruiters & Talent Team',
+        description: `Search active recruiters, talent sourcers, and HRs at ${cleanCompany} directly on LinkedIn`,
+        query: `${cleanCompany} (recruiter OR "talent acquisition" OR "talent partner" OR "technical recruiter")${customRoleQuery}`,
+        url: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} (recruiter OR "talent acquisition" OR "talent partner" OR "technical recruiter")${customRoleQuery}`)}`,
+        badge: 'Recommended',
+      },
+      {
+        title: '💻 Technical & Engineering Recruiters',
+        description: `Find technical hiring managers and engineering talent leads at ${cleanCompany}`,
+        query: `${cleanCompany} ("technical recruiter" OR "tech talent" OR "engineering recruiter")`,
+        url: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} ("technical recruiter" OR "tech talent" OR "engineering recruiter")`)}`,
+        badge: 'Tech Roles',
+      },
+      {
+        title: '👥 Talent Acquisition Leads & Heads',
+        description: `Find Talent Acquisition Directors, Lead Recruiters, and Heads of People`,
+        query: `${cleanCompany} ("lead recruiter" OR "talent acquisition lead" OR "head of talent")`,
+        url: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} ("lead recruiter" OR "talent acquisition lead" OR "head of talent")`)}`,
+        badge: 'Leadership',
+      },
+      {
+        title: '🚀 Engineering Managers & Hiring Leads',
+        description: `Find department managers and engineering leads who make direct hiring decisions`,
+        query: `${cleanCompany} ("engineering manager" OR "hiring manager" OR "director of engineering")`,
+        url: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} ("engineering manager" OR "hiring manager" OR "director of engineering")`)}`,
+        badge: 'Decision Makers',
+      },
+      {
+        title: '🌐 Google X-Ray Verified Profiles',
+        description: `Search indexed LinkedIn profiles at ${cleanCompany} via Google Search`,
+        query: `site:linkedin.com/in/ "${cleanCompany}" ("recruiter" OR "talent acquisition")`,
+        url: `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in/ "${cleanCompany}" ("recruiter" OR "talent acquisition" OR "hiring")`)}`,
+        badge: 'X-Ray Web',
+      },
+    ];
+
+    // Standard official inboxes
+    const officialInboxes = [
+      { email: `careers@${domain}`, label: 'Official Careers Inbox' },
+      { email: `talent@${domain}`, label: 'Talent Acquisition Team' },
+      { email: `recruiting@${domain}`, label: 'Recruiting Team' },
+      { email: `hr@${domain}`, label: 'HR & People Operations' },
+    ];
 
     res.json({
       success: true,
       company: cleanCompany,
       domain,
-      count: enrichedResults.length,
-      employees: enrichedResults,
+      verifiedContacts,
+      linkedinPortals,
+      officialInboxes,
     });
   } catch (error) {
     console.error('[Recruiter Search Error]:', error);
@@ -153,26 +138,38 @@ exports.searchCompanyEmployees = async (req, res) => {
 exports.getRecruiters = async (req, res) => {
   try {
     const recruiters = await Recruiter.find().sort({ createdAt: -1 }).limit(50);
-    
-    const userEmailLogs = await EmailLog.find({ userId: req.user._id, status: 'sent' });
-    const contactedEmails = new Set(userEmailLogs.map(l => l.recipientEmail.toLowerCase()));
+    res.json({ success: true, count: recruiters.length, recruiters });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-    const enriched = recruiters.map(r => ({
-      _id: r._id,
-      name: r.name,
-      title: r.title,
-      companyName: r.companyName,
-      email: r.email,
-      linkedinUrl: r.linkedinUrl,
-      source: r.source,
-      confidenceScore: r.confidenceScore,
-      isContacted: contactedEmails.has((r.email || '').toLowerCase()),
-    }));
+// @route   POST /api/recruiters
+exports.createRecruiter = async (req, res) => {
+  try {
+    const { companyName, name, title, email, linkedinUrl } = req.body;
 
-    res.json({
+    if (!companyName || !name) {
+      return res.status(400).json({ success: false, message: 'Company name and recruiter name are required' });
+    }
+
+    const cleanCompany = companyName.trim();
+    const cleanEmail = email ? email.toLowerCase().trim() : `talent@${deriveCompanyDomain(cleanCompany)}`;
+
+    const recruiter = await Recruiter.create({
+      companyName: cleanCompany,
+      name: name.trim(),
+      title: title?.trim() || 'Technical Recruiter',
+      email: cleanEmail,
+      linkedinUrl: linkedinUrl?.trim() || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanCompany} ${name}`)}`,
+      source: 'manual',
+      confidenceScore: 98,
+    });
+
+    res.status(201).json({
       success: true,
-      count: enriched.length,
-      recruiters: enriched,
+      message: 'Recruiter contact saved successfully',
+      recruiter,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -186,19 +183,7 @@ exports.getRecruiterById = async (req, res) => {
     if (!recruiter) {
       return res.status(404).json({ success: false, message: 'Recruiter not found' });
     }
-
-    const openJobs = await Job.find({ recruiterId: recruiter._id });
-    const outreachLogs = await EmailLog.find({
-      userId: req.user._id,
-      recipientEmail: recruiter.email?.toLowerCase(),
-    }).sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      recruiter,
-      openJobs,
-      outreachLogs,
-    });
+    res.json({ success: true, recruiter });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

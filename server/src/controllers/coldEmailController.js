@@ -14,16 +14,16 @@ exports.generateEmail = async (req, res) => {
     const resume = await Resume.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
     const candidateProfile = resume?.parsedProfile || {
       name: req.user.name,
-      yearsOfExperience: 3,
-      skills: ['Java', 'Spring Boot', 'REST APIs', 'AWS', 'MongoDB'],
+      yearsOfExperience: 1,
+      skills: [],
     };
 
     // 2. Fetch Job details or use custom fields
     let job = {
-      title: customJobTitle || 'Software Engineer',
-      company: customCompany || 'Innovative Tech Corp',
-      description: 'Looking for a passionate engineer.',
-      skills: ['Backend Development', 'System Design'],
+      title: customJobTitle || candidateProfile.title || 'Open Position',
+      company: customCompany || 'Hiring Organization',
+      description: 'Position opportunity.',
+      skills: candidateProfile.skills || [],
     };
 
     if (jobId) {
@@ -123,8 +123,8 @@ exports.bulkGenerateEmails = async (req, res) => {
     const resume = await Resume.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
     const candidateProfile = resume?.parsedProfile || {
       name: req.user.name,
-      yearsOfExperience: 3,
-      skills: ['Java', 'Spring Boot', 'AWS', 'MongoDB'],
+      yearsOfExperience: 1,
+      skills: [],
     };
 
     const jobs = await Job.find({ _id: { $in: jobIds } }).populate('recruiterId');
