@@ -36,14 +36,18 @@ exports.getMatchedJobs = async (req, res) => {
     const userSearch = await SavedSearch.findOne({ userId }).sort({ createdAt: -1 });
     const resume = await Resume.findOne({ userId }).sort({ createdAt: -1 });
 
-    const candidateTitle = resume?.parsedProfile?.title || 'Open Opportunity';
-    const candidateSkills = resume?.parsedProfile?.skills || [];
+    const candidateTitle = resume?.parsedProfile?.title || 'Software Engineer';
+    const candidateSkills = resume?.parsedProfile?.skills || ['React', 'JavaScript', 'Node.js', 'Python', 'SQL', 'AWS'];
     const candidateLocation = resume?.parsedProfile?.location || 'PAN India';
 
+    const defaultRoleList = ['Software Engineer', 'Full Stack Developer', 'Frontend Developer', 'Backend Developer'];
+
     const searchPreferences = {
-      jobTitles: userSearch?.jobTitles?.length
+      jobTitles: search?.trim()
+        ? [search.trim()]
+        : userSearch?.jobTitles?.length
         ? userSearch.jobTitles
-        : (resume?.parsedProfile?.title ? [resume.parsedProfile.title] : ['Open Opportunities']),
+        : (resume?.parsedProfile?.title ? [resume.parsedProfile.title] : defaultRoleList),
       skills: userSearch?.skills?.length
         ? userSearch.skills
         : candidateSkills,
@@ -57,7 +61,7 @@ exports.getMatchedJobs = async (req, res) => {
     const candidateProfile = resume?.parsedProfile || {
       name: req.user.name || 'Candidate',
       title: candidateTitle,
-      yearsOfExperience: resume?.parsedProfile?.yearsOfExperience || 1,
+      yearsOfExperience: resume?.parsedProfile?.yearsOfExperience || 2,
       skills: candidateSkills,
       location: candidateLocation,
     };
@@ -74,38 +78,37 @@ exports.getMatchedJobs = async (req, res) => {
       }
     });
 
-    // 4. Score and format live jobs in-memory without polluting DB
-    const liveMatches = [];
-    for (let i = 0; i < rawJobs.length; i++) {
-      const raw = rawJobs[i];
-      raw.applicationUrl = sanitizeJobUrl(raw);
+    // 4. Score and format live jobs in-memory in parallel
+    const liveMatches = await Promise.all(
+      rawJobs.map(async (raw, i) => {
+        raw.applicationUrl = sanitizeJobUrl(raw);
 
-      const matchResult = await aiService.calculateMatchScore(candidateProfile, raw);
-      const score = matchResult.overallScore ?? matchResult.score ?? 84;
+        const matchResult = await aiService.calculateMatchScore(candidateProfile, raw);
+        const score = matchResult.overallScore ?? matchResult.score ?? 84;
+        const appStatus = appliedUrls.get(raw.fingerprint || raw.applicationUrl) || 'new';
 
-      const appStatus = appliedUrls.get(raw.fingerprint || raw.applicationUrl) || 'new';
-
-      liveMatches.push({
-        matchId: `live-${raw.fingerprint || i}`,
-        score,
-        breakdown: matchResult.breakdown || {
-          skills: 85,
-          experience: 80,
-          location: 90,
-          title: 85,
-          salary: 80,
-        },
-        matchReason:
-          matchResult.matchReason || `Strong alignment for ${raw.title} at ${raw.company}`,
-        missingRequirements:
-          matchResult.missingRequirements || 'No significant gaps detected.',
-        matchedSkills: matchResult.matchedSkills || raw.skills?.slice(0, 4) || ['Core Skills'],
-        missingSkills: matchResult.missingSkills || [],
-        status: appStatus,
-        isStrongMatch: score >= 60,
-        job: raw,
-      });
-    }
+        return {
+          matchId: `live-${raw.fingerprint || i}`,
+          score,
+          breakdown: matchResult.breakdown || {
+            skills: 85,
+            experience: 80,
+            location: 90,
+            title: 85,
+            salary: 80,
+          },
+          matchReason:
+            matchResult.matchReason || `Strong alignment for ${raw.title} at ${raw.company}`,
+          missingRequirements:
+            matchResult.missingRequirements || 'No significant gaps detected.',
+          matchedSkills: matchResult.matchedSkills || raw.skills?.slice(0, 4) || ['Core Skills'],
+          missingSkills: matchResult.missingSkills || [],
+          status: appStatus,
+          isStrongMatch: score >= 60,
+          job: raw,
+        };
+      })
+    );
 
     // 5. Apply filters (minScore, status, search term)
     let filtered = liveMatches;
