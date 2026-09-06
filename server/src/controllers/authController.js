@@ -191,8 +191,12 @@ exports.updateProfile = async (req, res) => {
     const { name, dailyEmailLimit, autoSendEnabled } = req.body;
     const user = await User.findById(req.user._id);
 
-    if (name) user.name = name;
-    if (dailyEmailLimit) user.dailyEmailLimit = dailyEmailLimit;
+    if (name) user.name = name.trim();
+    if (dailyEmailLimit !== undefined && !isNaN(dailyEmailLimit)) {
+      const isProOrAdmin = user.role === 'admin' || user.plan === 'pro';
+      const maxAllowed = isProOrAdmin ? 100 : 5;
+      user.dailyEmailLimit = Math.min(Math.max(1, Number(dailyEmailLimit)), maxAllowed);
+    }
     if (autoSendEnabled !== undefined) user.autoSendEnabled = autoSendEnabled;
 
     await user.save();

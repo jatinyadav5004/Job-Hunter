@@ -12,7 +12,7 @@ exports.getUsers = async (req, res) => {
     const query = {};
 
     if (search.trim()) {
-      const s = search.trim();
+      const s = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
         { email: new RegExp(s, 'i') },
         { name: new RegExp(s, 'i') },
