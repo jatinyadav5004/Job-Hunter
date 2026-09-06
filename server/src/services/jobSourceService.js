@@ -61,6 +61,69 @@ class BaseJobSource {
       })
       .slice(0, 6);
   }
+
+  _cleanDescription(raw) {
+    if (!raw) return '';
+    let text = String(raw);
+
+    // Replace block tags and breaks with appropriate newlines
+    text = text
+      .replace(/<br\s*[\/]?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|tr)>/gi, '\n\n')
+      .replace(/<li[^>]*>/gi, '\n• ')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<\/(ul|ol|table)>/gi, '\n\n')
+      .replace(/<[^>]*>/g, ' ');
+
+    // Decode HTML entities
+    const entityMap = {
+      '&nbsp;': ' ',
+      '&amp;': '&',
+      '&quot;': '"',
+      '&apos;': "'",
+      '&#39;': "'",
+      '&#x27;': "'",
+      '&rsquo;': "'",
+      '&lsquo;': "'",
+      '&#8217;': "'",
+      '&#8216;': "'",
+      '&ldquo;': '"',
+      '&rdquo;': '"',
+      '&#8220;': '"',
+      '&#8221;': '"',
+      '&ndash;': '-',
+      '&mdash;': '—',
+      '&#8211;': '-',
+      '&#8212;': '—',
+      '&bull;': '•',
+      '&middot;': '•',
+      '&#8226;': '•',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&hellip;': '...',
+      '&#8230;': '...',
+      '&trade;': '™',
+      '&reg;': '®',
+      '&copy;': '©',
+    };
+
+    for (const [entity, replacement] of Object.entries(entityMap)) {
+      text = text.split(entity).join(replacement);
+    }
+
+    // Decode numerical entities
+    text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)));
+    text = text.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+    // Normalize spacing and newlines
+    text = text
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+      .join('\n');
+
+    text = text.replace(/\n\s*\n\s*\n+/g, '\n\n');
+    return text.trim().slice(0, 4000);
+  }
 }
 
 /**
@@ -110,11 +173,11 @@ class ArbeitnowSource extends BaseJobSource {
     const location = item.location || (item.remote ? 'Remote' : 'Global');
     const isRemote = Boolean(item.remote || location.toLowerCase().includes('remote'));
 
+    const desc = this._cleanDescription(item.description) || `${title} at ${company}`;
+
     const skills = item.tags && item.tags.length > 0
       ? item.tags.slice(0, 6)
-      : this._extractSkills(`${title} ${item.description}`);
-
-    const desc = (item.description || `${title} at ${company}`).replace(/<[^>]*>?/gm, '').slice(0, 3000);
+      : this._extractSkills(`${title} ${desc}`);
 
     const job = {
       title,
@@ -192,7 +255,7 @@ class JobicySource extends BaseJobSource {
     const title = item.jobTitle || 'Role Specialist';
     const company = item.companyName || 'Global Enterprise';
     const location = item.jobGeo || 'Remote / Worldwide';
-    const desc = (item.jobDescription || `${title} at ${company}`).replace(/<[^>]*>?/gm, '').slice(0, 3000);
+    const desc = this._cleanDescription(item.jobDescription) || `${title} at ${company}`;
 
     const minSal = item.annualSalaryMin ? Number(item.annualSalaryMin) : 1200000;
     const maxSal = item.annualSalaryMax ? Number(item.annualSalaryMax) : 2400000;
@@ -294,7 +357,7 @@ class GreenhouseSource extends BaseJobSource {
   normalize(item, companyName = 'Enterprise Company') {
     const title = item.title || 'Role Specialist';
     const location = item.location?.name || 'PAN India / Global';
-    const desc = item.content ? item.content.replace(/<[^>]*>?/gm, '') : `${title} at ${companyName}`;
+    const desc = this._cleanDescription(item.content) || `${title} at ${companyName}`;
     const skills = this._extractSkills(`${title} ${desc}`);
 
     const job = {
@@ -316,7 +379,7 @@ class GreenhouseSource extends BaseJobSource {
         minYears: 2,
         maxYears: 6,
       },
-      description: desc.slice(0, 3000),
+      description: desc,
       requirements: [
         'Demonstrated experience in role execution and cross-functional leadership',
         'Strong problem-solving, communication, and domain fundamentals',
@@ -385,7 +448,7 @@ class LeverSource extends BaseJobSource {
   normalize(item, companyName = 'Enterprise Company') {
     const title = item.text || 'Engineering Specialist';
     const location = item.categories?.location || 'PAN India / Remote';
-    const desc = item.descriptionPlain || `${title} at ${companyName}`;
+    const desc = this._cleanDescription(item.descriptionPlain || item.description) || `${title} at ${companyName}`;
 
     const job = {
       title,
@@ -402,7 +465,7 @@ class LeverSource extends BaseJobSource {
         minYears: 3,
         maxYears: 7,
       },
-      description: desc.slice(0, 3000),
+      description: desc,
       requirements: [
         'Solid background in building production deliverables',
         'Experience with modern agile workflows and team delivery',
@@ -492,6 +555,7 @@ class JSearchSource extends BaseJobSource {
       'India';
 
     const isRemote = Boolean(item.job_is_remote || item.work_arrangement === 'remote');
+    const desc = this._cleanDescription(item.job_description) || `${title} at ${company}`;
 
     const job = {
       title,
@@ -508,7 +572,7 @@ class JSearchSource extends BaseJobSource {
         minYears: item.required_experience_years || 2,
         maxYears: (item.required_experience_years || 2) + 4,
       },
-      description: (item.job_description || `${title} at ${company}`).slice(0, 3000),
+      description: desc,
       requirements: [
         'Demonstrated track record of performance and deliverable execution',
         'Strong problem solving and domain knowledge',

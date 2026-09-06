@@ -6,6 +6,64 @@ import { getSafeJobUrl } from './JobCard';
 
 import api from '../services/api';
 
+function formatJobDescription(raw) {
+  if (!raw) return 'Join our team to drive impactful engineering and business milestones.';
+  let text = String(raw);
+
+  text = text
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|tr)>/gi, '\n\n')
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/(ul|ol|table)>/gi, '\n\n')
+    .replace(/<[^>]*>/g, ' ');
+
+  const entities = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&apos;': "'",
+    '&#39;': "'",
+    '&#x27;': "'",
+    '&rsquo;': "'",
+    '&lsquo;': "'",
+    '&#8217;': "'",
+    '&#8216;': "'",
+    '&ldquo;': '"',
+    '&rdquo;': '"',
+    '&#8220;': '"',
+    '&#8221;': '"',
+    '&ndash;': '-',
+    '&mdash;': '—',
+    '&#8211;': '-',
+    '&#8212;': '—',
+    '&bull;': '•',
+    '&middot;': '•',
+    '&#8226;': '•',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&hellip;': '...',
+    '&#8230;': '...',
+    '&trade;': '™',
+    '&reg;': '®',
+    '&copy;': '©',
+  };
+
+  for (const [entity, replacement] of Object.entries(entities)) {
+    text = text.split(entity).join(replacement);
+  }
+
+  text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)));
+  text = text.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+  return text
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n\s*\n\s*\n+/g, '\n\n')
+    .trim();
+}
+
 export default function JobDetailsModal({ item, jobMatch, onClose, onSave, onStatusChange, onGenerateEmail }) {
   const navigate = useNavigate();
   const data = item || jobMatch;
@@ -212,8 +270,8 @@ export default function JobDetailsModal({ item, jobMatch, onClose, onSave, onSta
           {/* Description */}
           <div>
             <h4 className="font-bold text-slate-900 mb-2">Job Overview</h4>
-            <div className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100">
-              {job.description || 'Join our team to drive impactful engineering and business milestones.'}
+            <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 p-4.5 rounded-xl border border-slate-100/90 font-normal">
+              {formatJobDescription(job.description)}
             </div>
           </div>
 
