@@ -129,6 +129,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateSettings = async (data) => {
+    const res = await api.put('/auth/profile', data);
+    if (res.data.success && res.data.user) {
+      setUser(res.data.user);
+    }
+    return res.data;
+  };
+
   const requestUpgrade = async () => {
     const res = await api.post('/auth/request-upgrade');
     return res.data;
