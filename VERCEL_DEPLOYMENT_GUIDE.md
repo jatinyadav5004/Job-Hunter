@@ -51,6 +51,7 @@ In the **"Environment Variables"** section on Vercel, add the following key-valu
 | `AI_PROVIDER` | `openai` | AI Engine (`openai` or `gemini`) |
 | `OPENAI_API_KEY` | `sk-proj-83Cz...` | Your OpenAI API key |
 | `GEMINI_API_KEY` | `your_gemini_api_key` | Optional Gemini API key |
+| `RAPIDAPI_KEY` | `0bfad1fad3mshbd0c54df16e123cp130abdjsn4812f7f66c9a` | RapidAPI JSearch key for live job crawling |
 | `NODE_ENV` | `production` | Production environment flag |
 
 ---
