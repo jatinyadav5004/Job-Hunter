@@ -212,7 +212,7 @@ class JSearchSource extends BaseJobSource {
 }
 
 /**
- * 2. Greenhouse Job Source
+ * 2. Real-Time Greenhouse Job Source (Direct Board Feeds)
  */
 class GreenhouseSource extends BaseJobSource {
   constructor() {
@@ -229,7 +229,7 @@ class GreenhouseSource extends BaseJobSource {
       try {
         const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company.toLowerCase().trim())}/jobs?content=true`;
         const res = await axios.get(url, { timeout: 4000 });
-        if (res.data && res.data.jobs) {
+        if (res.data && Array.isArray(res.data.jobs)) {
           for (const item of res.data.jobs.slice(0, 5)) {
             const normalized = this.normalize(item, company);
             if (this._matchesPreferences(normalized, preferences)) {
@@ -327,7 +327,7 @@ class GreenhouseSource extends BaseJobSource {
 }
 
 /**
- * 3. Lever Job Source
+ * 3. Real-Time Lever Job Source (Direct Board Feeds)
  */
 class LeverSource extends BaseJobSource {
   constructor() {
@@ -430,76 +430,8 @@ class LeverSource extends BaseJobSource {
 }
 
 /**
- * 4. Aggregators (LinkedIn, Indeed, Naukri, Wellfound, Career Portals)
- */
-class CompliantAggregatorSource extends BaseJobSource {
-  constructor(sourceName) {
-    super(sourceName);
-  }
-
-  async fetchJobs(preferences = {}) {
-    const list = [];
-    const companies = [
-      'ITC Hotels',
-      'Taj Hotels & Resorts',
-      'Marriott International',
-      'Oberoi Group',
-      'Swiggy',
-      'Zomato',
-      'Reliance Retail',
-      'Tata Consumer',
-      'Mahindra',
-      'Nykaa',
-    ];
-    const titles = preferences.jobTitles?.length
-      ? preferences.jobTitles
-      : ['Lead Specialist', 'Operations Manager'];
-
-    // Generate 2 diverse opportunities per aggregator source
-    for (let i = 0; i < 2; i++) {
-      const comp = companies[(i * 3 + Math.floor(Math.random() * 2)) % companies.length];
-      const title = titles[i % titles.length];
-      const loc =
-        preferences.locations?.[i % (preferences.locations?.length || 1)] || 'PAN India (All States)';
-
-      const job = {
-        title,
-        company: comp,
-        location: loc,
-        workMode: loc.toLowerCase().includes('remote') ? 'Remote' : 'Hybrid',
-        salary: {
-          min: preferences.minSalary || 1200000,
-          max: preferences.minSalary ? Math.round(preferences.minSalary * 1.6) : 2400000,
-          currency: preferences.currency || 'INR',
-        },
-        experienceRequired: {
-          minYears: preferences.experienceMin || 2,
-          maxYears: preferences.experienceMax || 6,
-        },
-        description: `Looking for a high-performing ${title} at ${comp} to lead operations, coordinate key deliverables, and scale strategic initiatives across India.`,
-        requirements: [
-          'Strong command of domain principles and problem solving',
-          'Demonstrated expertise in team management and client/stakeholder delivery',
-        ],
-        skills: preferences.skills?.length
-          ? preferences.skills.slice(0, 6)
-          : ['Strategy', 'Execution', 'Domain Operations'],
-        employmentType: 'Full-time',
-        source: this.name,
-        sourceJobId: `${this.name}-${comp.toLowerCase().replace(/[^a-z0-9]/g, '')}-${i}-${Date.now()}`,
-        applicationUrl: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${title} ${comp}`)}`,
-        postedAt: new Date(),
-        discoveredAt: new Date(),
-      };
-      job.fingerprint = this.generateFingerprint(job);
-      list.push(job);
-    }
-    return list;
-  }
-}
-
-/**
  * Master Job Source Manager
+ * Strictly aggregates 100% genuine live jobs from JSearch & ATS Feeds with zero synthetic data.
  */
 class JobSourceManager {
   constructor() {
@@ -507,17 +439,13 @@ class JobSourceManager {
     this.sources = {
       greenhouse: new GreenhouseSource(),
       lever: new LeverSource(),
-      linkedin: new CompliantAggregatorSource('linkedin'),
-      indeed: new CompliantAggregatorSource('indeed'),
-      naukri: new CompliantAggregatorSource('naukri'),
-      wellfound: new CompliantAggregatorSource('wellfound'),
     };
   }
 
   async fetchFromAllSources(preferences = {}) {
     const results = [];
 
-    // 1. Prioritize real-time live jobs from RapidAPI JSearch
+    // 1. Primary: Real-time live jobs from RapidAPI JSearch
     try {
       const jsearchJobs = await this.jsearch.fetchJobs(preferences);
       if (jsearchJobs && jsearchJobs.length > 0) {
@@ -527,23 +455,21 @@ class JobSourceManager {
       console.warn(`[JobSourceManager] JSearch fetch error: ${err.message}`);
     }
 
-    // 2. If JSearch returned fewer than 12 jobs, supplement with verified board sources
-    if (results.length < 12) {
-      const sourceEntries = Object.entries(this.sources);
-      const promises = sourceEntries.map(async ([sourceName, sourceInstance]) => {
-        try {
-          const jobs = await sourceInstance.fetchJobs(preferences);
-          return jobs || [];
-        } catch (err) {
-          return [];
-        }
-      });
+    // 2. Secondary: Public ATS Feeds (Greenhouse & Lever)
+    const sourceEntries = Object.entries(this.sources);
+    const promises = sourceEntries.map(async ([sourceName, sourceInstance]) => {
+      try {
+        const jobs = await sourceInstance.fetchJobs(preferences);
+        return jobs || [];
+      } catch (err) {
+        return [];
+      }
+    });
 
-      const settled = await Promise.allSettled(promises);
-      for (const item of settled) {
-        if (item.status === 'fulfilled' && Array.isArray(item.value)) {
-          results.push(...item.value);
-        }
+    const settled = await Promise.allSettled(promises);
+    for (const item of settled) {
+      if (item.status === 'fulfilled' && Array.isArray(item.value)) {
+        results.push(...item.value);
       }
     }
 

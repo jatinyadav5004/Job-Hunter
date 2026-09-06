@@ -249,11 +249,23 @@ exports.getDashboardStats = async (req, res) => {
     const savedCount = applications.filter((a) => a.status === 'saved' || a.status === 'shortlisted').length;
     const emailsSentCount = await EmailLog.countDocuments({ userId, status: 'sent' });
 
+    // Dynamic count from live discovered opportunities for this candidate
+    const resume = await Resume.findOne({ userId }).sort({ createdAt: -1 });
+    const userSearch = await SavedSearch.findOne({ userId }).sort({ createdAt: -1 });
+    const titles = userSearch?.jobTitles?.length
+      ? userSearch.jobTitles
+      : (resume?.parsedProfile?.title ? [resume.parsedProfile.title] : ['Opportunities']);
+    const locations = userSearch?.locations?.length ? userSearch.locations : ['India'];
+
+    const liveJobs = await jobSourceService.fetchFromAllSources({ jobTitles: titles, locations });
+    const jobsFoundToday = liveJobs.length;
+    const strongMatches = liveJobs.filter((j) => (j.matchScore || 80) >= 70).length;
+
     res.json({
       success: true,
       stats: {
-        jobsFoundToday: 12,
-        strongMatches: 10,
+        jobsFoundToday,
+        strongMatches,
         savedJobs: savedCount,
         applications: appliedCount,
         recruitersContacted: emailsSentCount,
