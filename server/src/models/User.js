@@ -71,6 +71,18 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    upgradeRequested: {
+      type: Boolean,
+      default: false,
+    },
+    upgradeRequestedAt: {
+      type: Date,
+      default: null,
+    },
+    upgradeRequestNote: {
+      type: String,
+      default: '',
+    },
     activeResumeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Resume',

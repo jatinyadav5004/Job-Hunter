@@ -27,6 +27,11 @@ exports.getUsers = async (req, res) => {
       query.$or = [{ isSuspended: true }, { status: 'suspended' }];
     } else if (status === 'deleted') {
       query.$or = [{ isDeleted: true }, { status: 'deleted' }];
+    } else if (status === 'upgrade_requested') {
+      query.upgradeRequested = true;
+      query.plan = { $ne: 'pro' };
+      query.role = { $ne: 'admin' };
+      query.isDeleted = { $ne: true };
     } else if (status === 'active') {
       query.isDeleted = { $ne: true };
       query.isSuspended = { $ne: true };
@@ -41,6 +46,7 @@ exports.getUsers = async (req, res) => {
     const totalCount = await User.countDocuments({});
     const proCount = await User.countDocuments({ plan: 'pro', isDeleted: { $ne: true }, isSuspended: { $ne: true } });
     const basicCount = await User.countDocuments({ plan: 'basic', isDeleted: { $ne: true }, isSuspended: { $ne: true } });
+    const upgradeRequestsCount = await User.countDocuments({ upgradeRequested: true, plan: { $ne: 'pro' }, role: { $ne: 'admin' }, isDeleted: { $ne: true } });
     const suspendedCount = await User.countDocuments({ $or: [{ isSuspended: true }, { status: 'suspended' }] });
     const deletedCount = await User.countDocuments({ $or: [{ isDeleted: true }, { status: 'deleted' }] });
 
@@ -58,6 +64,9 @@ exports.getUsers = async (req, res) => {
           plan: u.role === 'admin' ? 'pro' : u.plan || 'basic',
           isSuspended: Boolean(u.isSuspended || u.status === 'suspended'),
           isDeleted: Boolean(u.isDeleted || u.status === 'deleted'),
+          upgradeRequested: Boolean(u.upgradeRequested && u.plan !== 'pro' && u.role !== 'admin'),
+          upgradeRequestedAt: u.upgradeRequestedAt,
+          upgradeRequestNote: u.upgradeRequestNote || '',
           applicationsCount,
           emailsSent,
           hasResume: Boolean(resume),
@@ -72,6 +81,7 @@ exports.getUsers = async (req, res) => {
         totalUsers: totalCount,
         proUsers: proCount,
         basicUsers: basicCount,
+        upgradeRequestsCount,
         suspendedUsers: suspendedCount,
         deletedUsers: deletedCount,
       },
@@ -100,6 +110,10 @@ exports.updateUserPlan = async (req, res) => {
     }
 
     user.plan = plan;
+    if (plan === 'pro') {
+      user.upgradeRequested = false;
+      user.upgradeRequestNote = '';
+    }
     if (dailyEmailLimit !== undefined && !isNaN(dailyEmailLimit)) {
       user.dailyEmailLimit = Number(dailyEmailLimit);
     } else {
@@ -271,6 +285,36 @@ exports.resetPreviewLimit = async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin resetPreviewLimit Error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route   POST /api/admin/users/:id/dismiss-upgrade
+// Dismiss a user's PRO upgrade request
+exports.dismissUpgradeRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.upgradeRequested = false;
+    user.upgradeRequestNote = '';
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `Upgrade request from ${user.email} dismissed.`,
+      user: {
+        id: user._id,
+        email: user.email,
+        upgradeRequested: false,
+      },
+    });
+  } catch (error) {
+    console.error('[Admin dismissUpgradeRequest Error]:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

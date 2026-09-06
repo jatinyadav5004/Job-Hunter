@@ -7,6 +7,7 @@ const {
   toggleSuspension,
   toggleSoftDelete,
   resetPreviewLimit,
+  dismissUpgradeRequest,
 } = require('../controllers/adminController');
 const { protect, requireAdmin } = require('../middleware/auth');
 
@@ -20,5 +21,6 @@ router.post('/users/:id/role', updateUserRole);
 router.post('/users/:id/suspend', toggleSuspension);
 router.post('/users/:id/soft-delete', toggleSoftDelete);
 router.post('/users/:id/reset-preview', resetPreviewLimit);
+router.post('/users/:id/dismiss-upgrade', dismissUpgradeRequest);
 
 module.exports = router;

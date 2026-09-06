@@ -159,6 +159,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDismissUpgrade = async (targetUser) => {
+    setActionLoadingId(targetUser._id);
+    try {
+      const res = await api.post(`/admin/users/${encodeURIComponent(targetUser._id)}/dismiss-upgrade`);
+      if (res.data.success) {
+        setFeedback({ type: 'success', msg: `Upgrade request from ${targetUser.email} dismissed.` });
+        fetchUsers();
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', msg: err.response?.data?.message || 'Failed to dismiss request' });
+    } finally {
+      setActionLoadingId('');
+    }
+  };
+
+  const pendingUpgradeUsers = users.filter((u) => u.upgradeRequested && u.plan !== 'pro' && !u.isDeleted);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -170,7 +187,7 @@ export default function AdminDashboard() {
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight">User Management & Subscription Control</h2>
           <p className="text-xs text-slate-300 mt-1">
-            Grant or revoke PRO access, suspend accounts, soft-delete users, and inspect candidate activity
+            Grant or revoke PRO access, review upgrade requests, suspend accounts, and inspect candidate activity
           </p>
         </div>
 
@@ -207,7 +224,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Total Users</span>
           <div className="text-xl font-black text-slate-900 mt-1">{metrics.totalUsers || 0}</div>
@@ -219,6 +236,25 @@ export default function AdminDashboard() {
             <Crown className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="text-xl font-black text-amber-900 mt-1">{metrics.proUsers || 0}</div>
+        </div>
+
+        {/* Upgrade Requests Metric Card */}
+        <div
+          onClick={() => setStatusFilter('upgrade_requested')}
+          className="bg-white p-4 rounded-2xl border border-teal-300 bg-teal-50/30 shadow-xs cursor-pointer hover:border-teal-500 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-teal-800 uppercase tracking-wider">PRO Requests</span>
+            <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+          </div>
+          <div className="text-xl font-black text-teal-900 mt-1 flex items-center gap-2">
+            <span>{metrics.upgradeRequestsCount || 0}</span>
+            {(metrics.upgradeRequestsCount || 0) > 0 && (
+              <span className="text-[10px] font-black bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full animate-pulse">
+                PENDING
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
@@ -236,6 +272,104 @@ export default function AdminDashboard() {
           <div className="text-xl font-black text-slate-500 mt-1">{metrics.deletedUsers || 0}</div>
         </div>
       </div>
+
+      {/* Dedicated Section: Pending PRO Upgrade Requests */}
+      {pendingUpgradeUsers.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-emerald-500/10 border-2 border-amber-400/60 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-500 text-slate-900 rounded-xl shadow-xs">
+                <Crown className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <span>Pending PRO Upgrade Requests</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-amber-950 font-black text-xs">
+                    {pendingUpgradeUsers.length} Action Required
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  These candidates submitted a request to unlock PRO features (Bulk Email, Recruiter Finder). Review & grant access below:
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {pendingUpgradeUsers.map((reqUser) => {
+              const isActionLoading = actionLoadingId === reqUser._id;
+              const formattedDate = reqUser.upgradeRequestedAt
+                ? new Date(reqUser.upgradeRequestedAt).toLocaleString()
+                : 'Recently';
+
+              return (
+                <div
+                  key={reqUser._id}
+                  className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs flex flex-col justify-between gap-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-black text-sm flex items-center justify-center shrink-0">
+                        {reqUser.name ? reqUser.name[0].toUpperCase() : 'U'}
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                          <span>{reqUser.name || 'Candidate'}</span>
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                            Basic
+                          </span>
+                        </div>
+                        <div className="text-xs font-mono text-slate-500">{reqUser.email}</div>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {formattedDate}
+                    </span>
+                  </div>
+
+                  {reqUser.upgradeRequestNote && (
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-700 italic">
+                      "{reqUser.upgradeRequestNote}"
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2">
+                    <span>
+                      Resume: <strong>{reqUser.resumeTitle || 'No Resume'}</strong>
+                    </span>
+                    <span>
+                      Sent: <strong>{reqUser.emailsSent || 0} emails</strong>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={isActionLoading}
+                      onClick={() => handlePlanChange(reqUser, 'pro')}
+                      className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Crown className="w-3.5 h-3.5 text-slate-900" />
+                      <span>{isActionLoading ? 'Upgrading...' : 'Grant PRO Access (1-Click)'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isActionLoading}
+                      onClick={() => handleDismissUpgrade(reqUser)}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
@@ -275,6 +409,7 @@ export default function AdminDashboard() {
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
           >
             <option value="all">All Statuses</option>
+            <option value="upgrade_requested">⭐ PRO Requests ({metrics.upgradeRequestsCount || 0})</option>
             <option value="active">Active Accounts</option>
             <option value="suspended">Suspended</option>
             <option value="deleted">Soft-Deleted</option>
@@ -321,7 +456,7 @@ export default function AdminDashboard() {
                     <tr
                       key={u._id}
                       className={`hover:bg-slate-50/70 transition-colors ${
-                        isDeleted ? 'bg-slate-50/50 opacity-60' : isSuspended ? 'bg-rose-50/20' : ''
+                        isDeleted ? 'bg-slate-50/50 opacity-60' : isSuspended ? 'bg-rose-50/20' : u.upgradeRequested ? 'bg-amber-50/30' : ''
                       }`}
                     >
                       {/* User Info */}
@@ -344,6 +479,13 @@ export default function AdminDashboard() {
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-200">
                               <Shield className="w-3 h-3" />
                               ADMIN
+                            </span>
+                          )}
+
+                          {u.upgradeRequested && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                              <Sparkles className="w-3 h-3 text-amber-600" />
+                              PRO REQUESTED
                             </span>
                           )}
 

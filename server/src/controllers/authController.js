@@ -34,6 +34,8 @@ function sanitizeUser(user) {
     isDeleted: Boolean(user.isDeleted),
     dailyEmailLimit: effectivePlan === 'pro' ? 50 : (user.dailyEmailLimit || 5),
     autoSendEnabled: Boolean(user.autoSendEnabled),
+    upgradeRequested: Boolean(user.upgradeRequested && effectivePlan !== 'pro'),
+    upgradeRequestedAt: user.upgradeRequestedAt,
     activeResumeId: user.activeResumeId,
   };
 }
@@ -214,16 +216,25 @@ exports.updateProfile = async (req, res) => {
 // @route   POST /api/auth/request-upgrade
 exports.requestUpgrade = async (req, res) => {
   try {
+    const { note } = req.body || {};
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    user.upgradeRequested = true;
+    user.upgradeRequestedAt = new Date();
+    if (note) {
+      user.upgradeRequestNote = String(note).trim().slice(0, 500);
+    }
+    await user.save();
+
     console.log(`[Admin Notice] User ${user.email} requested a PRO plan upgrade.`);
 
     res.json({
       success: true,
-      message: 'Your upgrade request has been submitted to the administrator for review.',
+      message: 'Your PRO upgrade request has been submitted to the administrator for review.',
+      user: sanitizeUser(user),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -137,8 +137,11 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const requestUpgrade = async () => {
-    const res = await api.post('/auth/request-upgrade');
+  const requestUpgrade = async (data = {}) => {
+    const res = await api.post('/auth/request-upgrade', data);
+    if (res.data.success && res.data.user) {
+      setUser(res.data.user);
+    }
     return res.data;
   };
 
