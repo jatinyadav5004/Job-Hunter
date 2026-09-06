@@ -16,8 +16,11 @@ import {
   Briefcase,
   UserCheck,
   X,
+  Crown,
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import ProFeatureLock from '../components/ProFeatureLock';
 
 const POPULAR_COMPANIES = [
   'Razorpay',
@@ -38,6 +41,7 @@ const POPULAR_COMPANIES = [
 
 export default function Recruiters() {
   const navigate = useNavigate();
+  const { isPro } = useAuth();
   const [companyInput, setCompanyInput] = useState('Razorpay');
   const [roleInput, setRoleInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,8 +61,25 @@ export default function Recruiters() {
   const [submittingAdd, setSubmittingAdd] = useState(false);
 
   useEffect(() => {
-    handleSearch('Razorpay');
-  }, []);
+    if (isPro) {
+      handleSearch('Razorpay');
+    }
+  }, [isPro]);
+
+  if (!isPro) {
+    return (
+      <ProFeatureLock
+        title="Recruiter & Hiring Lead Finder"
+        description="Search active recruiters, talent acquisition leads, and hiring managers with live targeted LinkedIn searches and verified corporate inboxes."
+        featurePills={[
+          'Live LinkedIn Talent Launchers',
+          'Official Corporate Inboxes',
+          'Verified Contact Storage',
+          '1-Click Cold Email Outreach',
+        ]}
+      />
+    );
+  }
 
   const handleSearch = async (targetCompany = companyInput) => {
     if (!targetCompany.trim()) return;

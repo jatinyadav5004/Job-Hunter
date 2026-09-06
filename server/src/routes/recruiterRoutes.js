@@ -7,8 +7,10 @@ const {
   searchCompanyEmployees,
 } = require('../controllers/recruiterController');
 const { protect } = require('../middleware/auth');
+const { requirePro } = require('../middleware/tierCheck');
 
 router.use(protect);
+router.use(requirePro); // Recruiter Discovery is a PRO feature
 
 router.get('/search', searchCompanyEmployees);
 router.get('/', getRecruiters);

@@ -14,12 +14,14 @@ import {
   RefreshCw,
   UploadCloud,
   Layers,
+  Crown,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import UpgradeModal from '../components/UpgradeModal';
 
 export default function ColdEmailGenerator() {
-  const { user } = useAuth();
+  const { user, isPro } = useAuth();
   const location = useLocation();
   const passedJob = location.state?.selectedJob;
 
@@ -29,6 +31,7 @@ export default function ColdEmailGenerator() {
   // Active Resume Profile State
   const [activeResume, setActiveResume] = useState(null);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   const [jobTitle, setJobTitle] = useState(passedJob?.title || '');
   const [company, setCompany] = useState(passedJob?.company || '');
@@ -133,6 +136,9 @@ export default function ColdEmailGenerator() {
         setVersionTab('normal');
       }
     } catch (err) {
+      if (err.response?.data?.isProRequired || err.response?.data?.limitReached) {
+        setUpgradeModalOpen(true);
+      }
       setStatusMessage({
         type: 'error',
         msg: err.response?.data?.message || 'Failed to generate cold email with AI',
@@ -482,6 +488,12 @@ export default function ColdEmailGenerator() {
           )}
         </div>
       </div>
+
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        featureName="Unlimited AI Cold Outreach"
+      />
     </div>
   );
 }

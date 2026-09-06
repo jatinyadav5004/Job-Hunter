@@ -19,6 +19,7 @@ import Recruiters from './pages/Recruiters';
 import EmailSettings from './pages/EmailSettings';
 import About from './pages/About';
 import Settings from './pages/Settings';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Protected Route Guard
 function ProtectedRoute({ children }) {
@@ -34,6 +35,25 @@ function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+// Admin Route Guard
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-semibold text-xs">
+        Verifying permissions...
+      </div>
+    );
+  }
+
+  if (!user || (user.role !== 'admin' && !user.isAdmin)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -68,6 +88,16 @@ export default function App() {
             <Route path="/email" element={<EmailSettings />} />
             <Route path="/about" element={<About />} />
             <Route path="/settings" element={<Settings />} />
+
+            {/* Admin Management Route */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
           </Route>
 
           {/* Fallback */}

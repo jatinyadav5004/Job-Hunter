@@ -12,13 +12,15 @@ import {
   Eye,
   X,
   Mail,
+  Crown,
 } from 'lucide-react';
 import api from '../services/api';
 import MatchScoreBadge from '../components/MatchScoreBadge';
 import { useAuth } from '../context/AuthContext';
+import ProFeatureLock from '../components/ProFeatureLock';
 
 export default function BulkApply() {
-  const { user } = useAuth();
+  const { user, isPro } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [selectedJobIds, setSelectedJobIds] = useState([]);
   const [generatedEmails, setGeneratedEmails] = useState([]);
@@ -32,9 +34,26 @@ export default function BulkApply() {
   const [feedback, setFeedback] = useState({ type: '', msg: '' });
 
   useEffect(() => {
-    fetchCandidates();
-    fetchSenders();
-  }, []);
+    if (isPro) {
+      fetchCandidates();
+      fetchSenders();
+    }
+  }, [isPro]);
+
+  if (!isPro) {
+    return (
+      <ProFeatureLock
+        title="Bulk AI Cold Outreach & Application Dispatcher"
+        description="Select multiple matching jobs and autonomously generate & dispatch customized, high-converting cold emails to verified recruiters and hiring managers in seconds."
+        featurePills={[
+          'Multi-Company Email Generation',
+          'Automated Sender Queue',
+          'AI Tone & Custom Context Alignment',
+          'High Deliverability Tracking',
+        ]}
+      />
+    );
+  }
 
   const fetchCandidates = async () => {
     setLoadingJobs(true);

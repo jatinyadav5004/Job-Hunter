@@ -39,6 +39,28 @@ exports.generateEmail = async (req, res) => {
       email: recruiterEmail || (job.recruiterId ? job.recruiterId.email : ''),
     };
 
+    // Check user tier & quota (Basic plan is restricted to strictly 1 preview)
+    const adminEmails = (process.env.ADMIN_EMAILS || '')
+      .toLowerCase()
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+    const userEmail = (req.user.email || req.user._id || '').toLowerCase();
+    const isPro = adminEmails.includes(userEmail) || req.user.plan === 'pro';
+
+    const User = require('../models/User');
+    const userDoc = await User.findById(req.user._id);
+
+    if (!isPro && userDoc && (userDoc.aiGenerationsCount || 0) >= 1) {
+      return res.status(403).json({
+        success: false,
+        isProRequired: true,
+        limitReached: true,
+        message:
+          'Basic plan is limited to 1 AI Cold Email preview. Upgrade to PRO for unlimited AI generations and mass outreach.',
+      });
+    }
+
     // 4. Generate AI Email with normal & short versions
     const emailResult = await aiService.generateColdEmail({
       candidateProfile,
@@ -47,6 +69,12 @@ exports.generateEmail = async (req, res) => {
       context,
     });
 
+    // Increment preview count for basic users
+    if (!isPro && userDoc) {
+      userDoc.aiGenerationsCount = (userDoc.aiGenerationsCount || 0) + 1;
+      await userDoc.save();
+    }
+
     res.json({
       success: true,
       data: {
@@ -54,6 +82,8 @@ exports.generateEmail = async (req, res) => {
         normalVersion: emailResult.normalVersion,
         shortVersion: emailResult.shortVersion,
         recruiter,
+        isPro,
+        generationsRemaining: isPro ? 'unlimited' : Math.max(0, 1 - (userDoc?.aiGenerationsCount || 1)),
         job: {
           id: job._id,
           title: job.title,

@@ -18,6 +18,26 @@ async function ensureDbConnected() {
   }
 }
 
+function sanitizeUser(user) {
+  const isAdmin = user.role === 'admin';
+  const effectivePlan = isAdmin ? 'pro' : user.plan || 'basic';
+
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role || 'user',
+    isAdmin,
+    plan: effectivePlan,
+    status: user.status || (user.isDeleted ? 'deleted' : user.isSuspended ? 'suspended' : 'active'),
+    isSuspended: Boolean(user.isSuspended),
+    isDeleted: Boolean(user.isDeleted),
+    dailyEmailLimit: effectivePlan === 'pro' ? 50 : (user.dailyEmailLimit || 5),
+    autoSendEnabled: Boolean(user.autoSendEnabled),
+    activeResumeId: user.activeResumeId,
+  };
+}
+
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
   try {
@@ -51,11 +71,16 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Default every new registration strictly to 'basic' and role 'user'
     const user = await User.create({
       _id: cleanEmail,
       email: cleanEmail,
       name: name.trim(),
       password,
+      role: 'user',
+      plan: 'basic',
+      status: 'active',
+      dailyEmailLimit: 5,
     });
 
     const token = generateToken(user._id);
@@ -71,13 +96,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        dailyEmailLimit: user.dailyEmailLimit,
-        autoSendEnabled: user.autoSendEnabled,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error) {
     console.error('[Register Error]:', error);
@@ -112,6 +131,23 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Check account status
+    if (user.isDeleted || user.status === 'deleted') {
+      return res.status(403).json({
+        success: false,
+        accountDeleted: true,
+        message: 'This account has been deleted by an administrator.',
+      });
+    }
+
+    if (user.isSuspended || user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        accountSuspended: true,
+        message: 'Your account has been suspended by an administrator. Please contact support.',
+      });
+    }
+
     const token = generateToken(user._id);
 
     res.cookie('token', token, {
@@ -124,13 +160,7 @@ exports.login = async (req, res) => {
     res.json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        dailyEmailLimit: user.dailyEmailLimit,
-        autoSendEnabled: user.autoSendEnabled,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error) {
     console.error('[Login Error]:', error);
@@ -151,14 +181,7 @@ exports.logout = async (req, res) => {
 exports.getMe = async (req, res) => {
   res.json({
     success: true,
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      dailyEmailLimit: req.user.dailyEmailLimit,
-      autoSendEnabled: req.user.autoSendEnabled,
-      activeResumeId: req.user.activeResumeId,
-    },
+    user: sanitizeUser(req.user),
   });
 };
 
@@ -177,13 +200,26 @@ exports.updateProfile = async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        dailyEmailLimit: user.dailyEmailLimit,
-        autoSendEnabled: user.autoSendEnabled,
-      },
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route   POST /api/auth/request-upgrade
+exports.requestUpgrade = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    console.log(`[Admin Notice] User ${user.email} requested a PRO plan upgrade.`);
+
+    res.json({
+      success: true,
+      message: 'Your upgrade request has been submitted to the administrator for review.',
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

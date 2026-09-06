@@ -32,6 +32,22 @@ const protect = async (req, res, next) => {
       });
     }
 
+    if (user.isDeleted || user.status === 'deleted') {
+      return res.status(403).json({
+        success: false,
+        accountDeleted: true,
+        message: 'This account has been deleted by an administrator.',
+      });
+    }
+
+    if (user.isSuspended || user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        accountSuspended: true,
+        message: 'Your account has been suspended by an administrator. Please contact support.',
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {
@@ -42,4 +58,20 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// Check DB role 'admin'
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Authentication required.' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Administrator privileges required (role must be admin in database).',
+    });
+  }
+
+  next();
+};
+
+module.exports = { protect, requireAdmin };

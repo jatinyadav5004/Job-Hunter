@@ -28,11 +28,44 @@ const UserSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+    },
+    plan: {
+      type: String,
+      enum: ['basic', 'pro'],
+      default: 'basic',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'suspended', 'deleted'],
+      default: 'active',
+    },
+    isSuspended: {
+      type: Boolean,
+      default: false,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    suspendedAt: {
+      type: Date,
+    },
+    deletedAt: {
+      type: Date,
+    },
     dailyEmailLimit: {
       type: Number,
-      default: 20,
+      default: 5,
       min: 1,
       max: 100,
+    },
+    aiGenerationsCount: {
+      type: Number,
+      default: 0,
     },
     autoSendEnabled: {
       type: Boolean,

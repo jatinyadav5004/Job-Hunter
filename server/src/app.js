@@ -13,6 +13,7 @@ const applicationRoutes = require('./routes/applicationRoutes');
 const emailAccountRoutes = require('./routes/emailAccountRoutes');
 const recruiterRoutes = require('./routes/recruiterRoutes');
 const digestRoutes = require('./routes/digestRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/email', emailAccountRoutes);
 app.use('/api/recruiters', recruiterRoutes);
 app.use('/api/digest', digestRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 Handler
 app.use((req, res) => {

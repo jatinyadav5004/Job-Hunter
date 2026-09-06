@@ -129,17 +129,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateSettings = async (settings) => {
-    const res = await api.put('/auth/settings', settings);
-    if (res.data.success) {
-      setUser(res.data.user);
-      recordActivity();
-    }
+  const requestUpgrade = async () => {
+    const res = await api.post('/auth/request-upgrade');
     return res.data;
   };
 
+  const isPro = user?.plan === 'pro';
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateSettings }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isPro,
+        loading,
+        login,
+        register,
+        logout,
+        updateSettings,
+        requestUpgrade,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
