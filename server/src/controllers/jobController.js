@@ -8,21 +8,20 @@ const aiService = require('../services/aiService');
 const { findOrDiscoverRecruiter } = require('../jobs/scheduler');
 
 function sanitizeJobUrl(job) {
-  if (!job) return 'https://www.linkedin.com/jobs/';
-  let url = job.applicationUrl || '';
+  if (!job) return 'https://www.google.com/search?q=jobs+careers+apply';
+  const url = (job.applicationUrl || '').trim();
   if (
-    !url ||
-    url.includes('/job-') ||
-    url.includes('/job/1') ||
-    url.includes('.com/careers/job/') ||
-    url.includes('jobs.lever.co/') ||
-    url.includes('boards.greenhouse.io/') ||
-    url.includes('/jobs/view/') ||
-    url.includes('example.com')
+    url &&
+    url.startsWith('http') &&
+    !url.includes('example.com') &&
+    !url.includes('localhost') &&
+    !url.includes('placeholder')
   ) {
-    return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${job.title || 'Engineer'} ${job.company || ''}`)}`;
+    return url;
   }
-  return url;
+  const company = job.company || '';
+  const title = job.title || 'Engineer';
+  return `https://www.google.com/search?q=${encodeURIComponent(`${company} ${title} careers apply jobs`)}`;
 }
 
 // @route   GET /api/jobs

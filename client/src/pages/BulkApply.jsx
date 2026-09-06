@@ -447,29 +447,60 @@ export default function BulkApply() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setEditingItem(null)}
-                className="px-4 py-2 border border-slate-200 rounded-xl font-bold text-slate-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const updated = [...generatedEmails];
-                  updated[editingItem.index] = {
-                    ...updated[editingItem.index],
-                    subject: editingItem.subject,
-                    body: editingItem.body,
-                    isApproved: true,
-                  };
-                  setGeneratedEmails(updated);
-                  setEditingItem(null);
-                }}
-                className="px-4 py-2 bg-teal-600 text-white rounded-xl font-bold"
-              >
-                Save Changes
-              </button>
+            <div className="p-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const to = encodeURIComponent(editingItem.recruiterEmail || '');
+                    const sub = encodeURIComponent(editingItem.subject || '');
+                    const bod = encodeURIComponent(editingItem.body || '');
+                    window.location.href = `mailto:${to}?subject=${sub}&body=${bod}`;
+                  }}
+                  className="px-3 py-1.5 bg-teal-50 border border-teal-200 text-teal-800 hover:bg-teal-100 rounded-xl font-bold text-xs flex items-center gap-1.5"
+                  title="Open this drafted message in your default Mail app"
+                >
+                  <Mail className="w-3.5 h-3.5 text-teal-700" />
+                  <span>Open in Mail App</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const to = encodeURIComponent(editingItem.recruiterEmail || '');
+                    const sub = encodeURIComponent(editingItem.subject || '');
+                    const bod = encodeURIComponent(editingItem.body || '');
+                    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${sub}&body=${bod}`, '_blank');
+                  }}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl font-bold text-xs flex items-center gap-1"
+                >
+                  <span>Gmail Web</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl font-bold text-slate-600 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const updated = [...generatedEmails];
+                    updated[editingItem.index] = {
+                      ...updated[editingItem.index],
+                      subject: editingItem.subject,
+                      body: editingItem.body,
+                      isApproved: true,
+                    };
+                    setGeneratedEmails(updated);
+                    setEditingItem(null);
+                  }}
+                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-bold text-xs"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>

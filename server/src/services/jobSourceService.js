@@ -140,7 +140,7 @@ class ArbeitnowSource extends BaseJobSource {
       employmentType: (item.job_types && item.job_types[0]) || 'Full-time',
       source: 'arbeitnow',
       sourceJobId: item.slug || `arbeitnow-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      applicationUrl: item.url || `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${company} ${title}`)}`,
+      applicationUrl: item.url || `https://www.google.com/search?q=${encodeURIComponent(`${company} ${title} careers apply`)}`,
       postedAt: item.created_at ? new Date(item.created_at * 1000) : new Date(),
       discoveredAt: new Date(),
     };
@@ -221,7 +221,7 @@ class JobicySource extends BaseJobSource {
       employmentType: item.jobType || 'Full-time',
       source: 'jobicy',
       sourceJobId: String(item.id || Math.random().toString(36).substr(2, 8)),
-      applicationUrl: item.url || `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${company} ${title}`)}`,
+      applicationUrl: item.url || `https://www.google.com/search?q=${encodeURIComponent(`${company} ${title} careers apply`)}`,
       employerLogo: item.companyLogo || '',
       postedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
       discoveredAt: new Date(),
@@ -327,7 +327,7 @@ class GreenhouseSource extends BaseJobSource {
       sourceJobId: String(item.id || Math.random().toString(36).substr(2, 9)),
       applicationUrl:
         item.absolute_url ||
-        `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${companyName} ${title}`)}`,
+        `https://www.google.com/search?q=${encodeURIComponent(`${companyName} ${title} careers apply`)}`,
       postedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
       discoveredAt: new Date(),
     };
@@ -413,7 +413,7 @@ class LeverSource extends BaseJobSource {
       sourceJobId: String(item.id || Math.random().toString(36).substr(2, 9)),
       applicationUrl:
         item.hostedUrl ||
-        `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${companyName} ${title}`)}`,
+        `https://www.google.com/search?q=${encodeURIComponent(`${companyName} ${title} careers apply`)}`,
       postedAt: item.createdAt ? new Date(item.createdAt) : new Date(),
       discoveredAt: new Date(),
     };
@@ -517,7 +517,7 @@ class JSearchSource extends BaseJobSource {
       employmentType: item.job_employment_type || 'Full-time',
       source: 'jsearch',
       sourceJobId: item.job_id || `jsearch-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      applicationUrl: item.job_apply_link || `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${company} ${title}`)}`,
+      applicationUrl: item.job_apply_link || `https://www.google.com/search?q=${encodeURIComponent(`${company} ${title} careers apply`)}`,
       employerLogo: item.employer_logo || '',
       postedAt: item.job_posted_at_datetime_utc ? new Date(item.job_posted_at_datetime_utc) : new Date(),
       discoveredAt: new Date(),

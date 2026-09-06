@@ -13,21 +13,20 @@ import {
 import MatchScoreBadge from './MatchScoreBadge';
 
 export function getSafeJobUrl(job) {
-  if (!job) return '#';
-  const url = job.applicationUrl || '';
+  if (!job) return 'https://www.google.com/search?q=jobs+careers+apply';
+  const url = (job.applicationUrl || '').trim();
   if (
-    !url ||
-    url.includes('/job-') ||
-    url.includes('/job/1') ||
-    url.includes('.com/careers/job/') ||
-    url.includes('jobs.lever.co/') ||
-    url.includes('boards.greenhouse.io/') ||
-    url.includes('/jobs/view/') ||
-    url.includes('example.com')
+    url &&
+    url.startsWith('http') &&
+    !url.includes('example.com') &&
+    !url.includes('localhost') &&
+    !url.includes('placeholder')
   ) {
-    return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(`${job.title || 'Engineer'} ${job.company || ''}`)}`;
+    return url;
   }
-  return url;
+  const comp = job.company || '';
+  const tit = job.title || 'Engineer';
+  return `https://www.google.com/search?q=${encodeURIComponent(`${comp} ${tit} careers apply jobs`)}`;
 }
 
 export default function JobCard({ item, jobMatch, onSelect, onReview, onSave, isSaved = false }) {
