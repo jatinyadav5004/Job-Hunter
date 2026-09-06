@@ -7,6 +7,14 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(() => {
+    const msg = sessionStorage.getItem('jh_session_notice');
+    if (msg) {
+      sessionStorage.removeItem('jh_session_notice');
+      return msg;
+    }
+    return '';
+  });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -14,6 +22,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
     try {
       await login(email, password);
@@ -35,6 +44,13 @@ export default function Login() {
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome to JobHunter AI</h2>
           <p className="text-sm text-slate-500 mt-1">Autonomous Job Matching & Cold Outreach</p>
         </div>
+
+        {notice && (
+          <div className="mb-6 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
