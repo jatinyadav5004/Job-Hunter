@@ -66,12 +66,15 @@ export default function SavedSearches() {
   const [searches, setSearches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [runningSearchId, setRunningSearchId] = useState(null);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Selected Roles and Locations (Multi-select dropdown)
-  const [selectedRoles, setSelectedRoles] = useState(['Software Engineer / IT']);
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [customRoleInput, setCustomRoleInput] = useState('');
   const [selectedLocations, setSelectedLocations] = useState(['PAN India (All States / Any Location)']);
 
   const [formData, setFormData] = useState({
@@ -105,17 +108,45 @@ export default function SavedSearches() {
     }
   };
 
-  // Add role from dropdown
+  const openCreateModal = () => {
+    setSelectedRoles([]);
+    setCustomRoleInput('');
+    setSelectedLocations(['PAN India (All States / Any Location)']);
+    setErrorMsg('');
+    setFormData({
+      skills: '',
+      experienceMin: 0,
+      experienceMax: 10,
+      workModes: ['Remote', 'Hybrid', 'On-site'],
+      minSalary: 0,
+      currency: 'INR',
+      minMatchScore: 60,
+      targetCompanies: '',
+      excludedCompanies: '',
+      excludedKeywords: '',
+    });
+    setModalOpen(true);
+  };
+
+  // Add role from dropdown or text input
   const handleAddRole = (role) => {
-    if (!role) return;
-    if (!selectedRoles.includes(role)) {
-      setSelectedRoles([...selectedRoles, role]);
+    const trimmed = (role || '').trim();
+    if (!trimmed) return;
+    if (!selectedRoles.includes(trimmed)) {
+      setSelectedRoles([...selectedRoles, trimmed]);
+      setErrorMsg('');
+    }
+  };
+
+  const handleAddCustomRole = () => {
+    if (customRoleInput.trim()) {
+      handleAddRole(customRoleInput.trim());
+      setCustomRoleInput('');
     }
   };
 
   const handleRemoveRole = (role) => {
-    const updated = selectedRoles.filter((r) => r !== role);
-    setSelectedRoles(updated.length > 0 ? updated : ['Software Engineer / IT']);
+    setSelectedRoles(selectedRoles.filter((r) => r !== role));
   };
 
   // Add location from dropdown
@@ -140,6 +171,16 @@ export default function SavedSearches() {
 
   const handleCreateSearch = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+
+    setErrorMsg('');
+
+    if (selectedRoles.length === 0) {
+      setErrorMsg('Please select or enter at least one target role before saving.');
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const profileName = `${selectedRoles.slice(0, 2).join(' & ')} Search`;
@@ -167,7 +208,9 @@ export default function SavedSearches() {
         fetchSearches();
       }
     } catch (err) {
-      console.error(err);
+      setErrorMsg(err.response?.data?.message || err.message || 'Failed to create search profile');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -255,7 +298,7 @@ export default function SavedSearches() {
         </div>
 
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={openCreateModal}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-teal-600/20 transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -369,7 +412,7 @@ export default function SavedSearches() {
             Create your search profile to automatically crawl job boards across India or globally.
           </p>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={openCreateModal}
             className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs"
           >
             Create Search Profile
@@ -393,6 +436,13 @@ export default function SavedSearches() {
 
             <form onSubmit={handleCreateSearch} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs flex-1">
+                {errorMsg && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
                 {/* Auto-Fill from Resume Quick Button */}
                 <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 rounded-xl p-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -408,33 +458,39 @@ export default function SavedSearches() {
                   </button>
                 </div>
 
-                {/* 1. Target Role Dropdown */}
+                {/* 1. Target Role Selection */}
                 <div>
                   <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <Briefcase className="w-4 h-4 text-teal-600" />
-                      Target Role
+                      Target Role <span className="text-rose-500">*</span>
                     </span>
-                    <span className="text-[10px] text-slate-400 font-normal">Add multiple if desired</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Select or type custom</span>
                   </label>
 
                   {/* Selected Role Tags */}
-                  <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[38px] mb-2">
-                    {selectedRoles.map((role, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg"
-                      >
-                        {role}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRole(role)}
-                          className="text-teal-200 hover:text-white"
-                        >
-                          ×
-                        </button>
+                  <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[42px] mb-2">
+                    {selectedRoles.length === 0 ? (
+                      <span className="text-slate-400 text-xs italic px-1">
+                        No role selected. Please choose from dropdown or enter below:
                       </span>
-                    ))}
+                    ) : (
+                      selectedRoles.map((role, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs"
+                        >
+                          {role}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRole(role)}
+                            className="text-teal-200 hover:text-white"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    )}
                   </div>
 
                   {/* Role Dropdown */}
@@ -444,10 +500,10 @@ export default function SavedSearches() {
                       e.target.value = '';
                     }}
                     defaultValue=""
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none mb-2"
                   >
                     <option value="" disabled>
-                      -- Select Role to Add (Software Engineer, HR, Marketing...) --
+                      -- Select Role from list (Software Engineer, Product Manager, HR, QA...) --
                     </option>
                     {MAIN_ROLE_OPTIONS.map((r, idx) => (
                       <option key={idx} value={r}>
@@ -455,6 +511,31 @@ export default function SavedSearches() {
                       </option>
                     ))}
                   </select>
+
+                  {/* Custom Role Input */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Or type custom title (e.g. React Native, Growth Lead, Data Engineer)..."
+                      value={customRoleInput}
+                      onChange={(e) => setCustomRoleInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomRole();
+                        }
+                      }}
+                      className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-teal-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomRole}
+                      disabled={!customRoleInput.trim()}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-all shrink-0"
+                    >
+                      + Add
+                    </button>
+                  </div>
                 </div>
 
                 {/* 2. Target Locations Dropdown with PAN India at Top */}
@@ -462,7 +543,7 @@ export default function SavedSearches() {
                   <label className="font-extrabold text-slate-800 block mb-1.5 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-teal-600" />
-                      Preferred Location
+                      Preferred Location <span className="text-rose-500">*</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-normal">PAN India / Metros</span>
                   </label>
@@ -472,7 +553,7 @@ export default function SavedSearches() {
                     {selectedLocations.map((loc, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1 bg-slate-800 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg"
+                        className="inline-flex items-center gap-1 bg-slate-800 text-white font-bold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs"
                       >
                         {loc}
                         <button
@@ -515,7 +596,7 @@ export default function SavedSearches() {
                   >
                     <span className="flex items-center gap-1.5">
                       <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600" />
-                      Additional Filters (Optional)
+                      Additional Filters (Skills, Experience, Work Mode)
                     </span>
                     {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
@@ -530,7 +611,7 @@ export default function SavedSearches() {
                           type="text"
                           value={formData.skills}
                           onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                          placeholder="e.g. React, Node.js, HRIS, SEO, Figma"
+                          placeholder="e.g. React, Node.js, Python, HRIS, SEO, Figma"
                           className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
                         />
                       </div>
@@ -540,6 +621,8 @@ export default function SavedSearches() {
                           <label className="font-bold text-slate-700 block mb-1">Min Experience (yrs)</label>
                           <input
                             type="number"
+                            min={0}
+                            max={30}
                             value={formData.experienceMin}
                             onChange={(e) => setFormData({ ...formData, experienceMin: e.target.value })}
                             className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
@@ -549,6 +632,8 @@ export default function SavedSearches() {
                           <label className="font-bold text-slate-700 block mb-1">Max Experience (yrs)</label>
                           <input
                             type="number"
+                            min={0}
+                            max={30}
                             value={formData.experienceMax}
                             onChange={(e) => setFormData({ ...formData, experienceMax: e.target.value })}
                             className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
@@ -565,15 +650,24 @@ export default function SavedSearches() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 border border-slate-300 bg-white rounded-xl text-slate-700 font-bold hover:bg-slate-100 text-xs transition-colors"
+                  disabled={submitting}
+                  className="px-4 py-2.5 border border-slate-300 bg-white rounded-xl text-slate-700 font-bold hover:bg-slate-100 text-xs transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-teal-600/20 transition-all"
+                  disabled={submitting || selectedRoles.length === 0}
+                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-teal-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
-                  Save & Search
+                  {submitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving & Scanning...</span>
+                    </>
+                  ) : (
+                    <span>Save & Search</span>
+                  )}
                 </button>
               </div>
             </form>

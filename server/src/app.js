@@ -35,7 +35,7 @@ if (require('fs').existsSync(uploadsPath)) {
   app.use('/uploads', express.static(uploadsPath));
 }
 
-// Health Check
+// Public Health Check & Keep-Alive Ping (Zero-auth for uptime monitors / cron)
 const healthHandler = (req, res) => {
   res.json({
     status: 'online',
@@ -47,6 +47,8 @@ const healthHandler = (req, res) => {
 };
 app.get('/api/health', healthHandler);
 app.get('/health', healthHandler);
+app.get('/api/ping', (req, res) => res.status(200).send('pong'));
+app.get('/ping', (req, res) => res.status(200).send('pong'));
 
 // API Routes
 app.use('/api/auth', authRoutes);

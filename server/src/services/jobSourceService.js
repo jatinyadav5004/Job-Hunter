@@ -51,20 +51,38 @@ class JSearchSource extends BaseJobSource {
   async fetchJobs(preferences = {}) {
     const list = [];
     const titles = preferences.jobTitles?.length ? preferences.jobTitles : ['Software Engineer'];
-    const location = preferences.locations?.[0] || 'India';
-    const query = `${titles[0]} in ${location}`;
+    const rawLocation = preferences.locations?.[0] || 'India';
+    
+    // Normalize location string for cleaner search queries
+    let cleanLocation = rawLocation
+      .replace(/\s*\(.*?\)\s*/g, ' ') // remove parentheses like (Karnataka) or (All States)
+      .trim();
+    if (!cleanLocation || cleanLocation.toLowerCase().includes('pan india')) {
+      cleanLocation = 'India';
+    } else if (cleanLocation.toLowerCase().includes('remote')) {
+      cleanLocation = 'Remote';
+    }
+
+    const primaryTitle = titles[0] || 'Software Engineer';
+    const skillsSuffix = preferences.skills?.length ? ` ${preferences.skills.slice(0, 2).join(' ')}` : '';
+    const query = `${primaryTitle}${skillsSuffix} in ${cleanLocation}`.trim();
+
     const apiKey = this.getApiKey();
     const apiHost = this.getApiHost();
     const apiUrl = this.getApiUrl();
 
+    // Map work mode filters
+    const isRemoteOnly = preferences.workModes?.length === 1 && preferences.workModes[0] === 'Remote';
+
     try {
-      console.log(`[JSearch API] Querying RapidAPI JSearch: "${query}"...`);
+      console.log(`[JSearch API] Querying RapidAPI JSearch: "${query}" (Remote: ${isRemoteOnly})...`);
       const response = await axios.get(apiUrl, {
         params: {
           query,
           page: '1',
           num_pages: '1',
           date_posted: 'all',
+          remote_jobs_only: isRemoteOnly ? 'true' : undefined,
         },
         headers: {
           'x-rapidapi-key': apiKey,

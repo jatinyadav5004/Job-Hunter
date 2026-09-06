@@ -170,8 +170,28 @@ exports.createSavedSearch = async (req, res) => {
       minMatchScore,
     } = req.body;
 
-    const titlesList = Array.isArray(jobTitles) ? jobTitles : (jobTitles ? [jobTitles] : ['Software Engineer']);
-    const profileName = name || (titlesList.length > 0 ? `${titlesList.slice(0, 2).join(' / ')} Search` : 'Job Search Profile');
+    const titlesList = Array.isArray(jobTitles) ? jobTitles.filter(Boolean) : (jobTitles ? [jobTitles] : []);
+    
+    if (titlesList.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please select at least one target role' });
+    }
+
+    const profileName = name || `${titlesList.slice(0, 2).join(' & ')} Search`;
+
+    // Deduplicate rapid duplicate clicks (within 10 seconds with identical name)
+    const existingRecent = await SavedSearch.findOne({
+      userId: req.user._id,
+      name: profileName,
+      createdAt: { $gte: new Date(Date.now() - 10000) },
+    });
+
+    if (existingRecent) {
+      return res.status(200).json({
+        success: true,
+        message: 'Search profile already created',
+        savedSearch: existingRecent,
+      });
+    }
 
     const savedSearch = await SavedSearch.create({
       userId: req.user._id,
