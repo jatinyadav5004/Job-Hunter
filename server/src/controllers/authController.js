@@ -37,6 +37,7 @@ function sanitizeUser(user) {
     upgradeRequested: Boolean(user.upgradeRequested && effectivePlan !== 'pro'),
     upgradeRequestedAt: user.upgradeRequestedAt,
     activeResumeId: user.activeResumeId,
+    hasResume: Boolean(user.activeResumeId),
   };
 }
 
@@ -181,10 +182,26 @@ exports.logout = async (req, res) => {
 
 // @route   GET /api/auth/me
 exports.getMe = async (req, res) => {
-  res.json({
-    success: true,
-    user: sanitizeUser(req.user),
-  });
+  try {
+    const Resume = require('../models/Resume');
+    const SavedSearch = require('../models/SavedSearch');
+    const resumeExists = await Resume.exists({ userId: req.user._id });
+    const searchExists = await SavedSearch.exists({ userId: req.user._id });
+
+    const sanitized = sanitizeUser(req.user);
+    sanitized.hasResume = Boolean(req.user.activeResumeId || resumeExists);
+    sanitized.hasSavedSearch = Boolean(searchExists);
+
+    res.json({
+      success: true,
+      user: sanitized,
+    });
+  } catch (err) {
+    res.json({
+      success: true,
+      user: sanitizeUser(req.user),
+    });
+  }
 };
 
 // @route   PUT /api/auth/profile

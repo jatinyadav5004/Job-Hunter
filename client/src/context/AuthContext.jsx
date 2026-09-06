@@ -76,6 +76,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkUserLoggedIn();
+
+    // Auto-sync session when tab regains focus (e.g. when admin changes tier in another tab)
+    const handleFocus = () => {
+      if (localStorage.getItem('jh_token')) {
+        checkUserLoggedIn();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   // Idle Inactivity Listener & Timer
@@ -145,7 +154,7 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const isPro = user?.plan === 'pro';
+  const isPro = Boolean(user?.plan === 'pro' || user?.role === 'admin' || user?.isAdmin);
 
   return (
     <AuthContext.Provider
@@ -158,6 +167,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateSettings,
         requestUpgrade,
+        refreshUser: checkUserLoggedIn,
       }}
     >
       {children}

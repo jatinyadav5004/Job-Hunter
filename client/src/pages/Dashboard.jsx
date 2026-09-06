@@ -17,6 +17,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import JobCard from '../components/JobCard';
 import JobDetailsModal from '../components/JobDetailsModal';
+import ResumeUploadPrompt from '../components/ResumeUploadPrompt';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -74,6 +75,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
+      {/* Resume Upload Prompt (Shown when user has no active resume) */}
+      <ResumeUploadPrompt />
+
       {/* Welcome banner */}
       <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="relative z-10 max-w-xl">

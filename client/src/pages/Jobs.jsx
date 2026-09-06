@@ -13,6 +13,7 @@ import {
 import api from '../services/api';
 import JobCard from '../components/JobCard';
 import JobDetailsModal from '../components/JobDetailsModal';
+import ResumeUploadPrompt from '../components/ResumeUploadPrompt';
 
 export default function Jobs() {
   const [jobs, setJobs] = useState([]);
@@ -75,6 +76,9 @@ export default function Jobs() {
 
   return (
     <div className="space-y-6">
+      {/* Resume Upload Prompt (Shown when user has no active resume) */}
+      <ResumeUploadPrompt />
+
       {/* Header & Controls */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

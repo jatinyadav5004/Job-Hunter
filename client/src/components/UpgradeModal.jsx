@@ -46,14 +46,16 @@ export default function UpgradeModal({ isOpen, onClose, featureName = 'This feat
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-extrabold mb-3">
             <Crown className="w-3.5 h-3.5" />
-            <span>PREMIUM MEMBERSHIP</span>
+            <span>{isPro ? 'PRO MEMBER ACTIVE' : 'PREMIUM MEMBERSHIP'}</span>
           </div>
 
           <h3 className="text-xl sm:text-2xl font-black tracking-tight">
-            Unlock Full Access with JobHunter PRO
+            {isPro ? 'JobHunter PRO Member' : 'Unlock Full Access with JobHunter PRO'}
           </h3>
           <p className="text-xs text-slate-300 mt-1 max-w-md">
-            {featureName} is exclusive to PRO members. PRO access is granted and managed by the platform administrator.
+            {isPro
+              ? 'Your account has active PRO membership with full access to all tools and integrations.'
+              : `${featureName} is exclusive to PRO members. PRO access is granted and managed by the platform administrator.`}
           </p>
         </div>
 
